@@ -1,6 +1,6 @@
 # VM-UNet
 This is the official code repository for "VM-UNet: Vision Mamba UNet for Medical
-Image Segmentation".
+Image Segmentation". [Arxiv Paper](https://arxiv.org/abs/2402.02491)
 
 ## 0. Main Environments
 ```bash
