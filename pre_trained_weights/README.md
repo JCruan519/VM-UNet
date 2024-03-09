@@ -1,1 +1,1 @@
-You could download the weights used by VM-UNet from here: https://pan.baidu.com/s/144nc45k28NBB_8k9hf_OeQ?pwd=xuns
+You could download the weights used by VM-UNet from [Baidu Drive](https://pan.baidu.com/s/144nc45k28NBB_8k9hf_OeQ?pwd=xuns) or [Google Drive](https://drive.google.com/drive/folders/1Fr7zM1wq7106d0P7_3oeU5UZqUvk2KaP?usp=sharing)
