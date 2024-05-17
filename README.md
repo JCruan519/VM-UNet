@@ -19,7 +19,7 @@ pip install causal_conv1d==1.0.0  # causal_conv1d-1.0.0+cu118torch1.13cxx11abiFA
 pip install mamba_ssm==1.0.1  # mmamba_ssm-1.0.1+cu118torch1.13cxx11abiFALSE-cp38-cp38-linux_x86_64.whl
 pip install scikit-learn matplotlib thop h5py SimpleITK scikit-image medpy yacs
 ```
-The .whl files of causal_conv1d and mamba_ssm could be found here. {[Baidu](https://pan.baidu.com/s/1Uza8g1pkVcbXG1F-2tB0xQ?pwd=p3h9)}
+The .whl files of causal_conv1d and mamba_ssm could be found here. {[Baidu](https://pan.baidu.com/s/1Tibn8Xh4FMwj0ths8Ufazw?pwd=uu5k)}
 
 ## 1. Prepare the dataset
 
@@ -59,7 +59,7 @@ The .whl files of causal_conv1d and mamba_ssm could be found here. {[Baidu](http
 
 ## 2. Prepare the pre_trained weights
 
-- The weights of the pre-trained VMamba could be downloaded [here](https://github.com/MzeroMiko/VMamba). After that, the pre-trained weights should be stored in './pretrained_weights/'.
+- The weights of the pre-trained VMamba could be downloaded [here](https://github.com/MzeroMiko/VMamba) or [Baidu](https://pan.baidu.com/s/1ci_YvPPEiUT2bIIK5x8Igw?pwd=wnyy). After that, the pre-trained weights should be stored in './pretrained_weights/'.
 
 
 
