@@ -3,13 +3,13 @@ This is the official code repository for "VM-UNet: Vision Mamba UNet for Medical
 Image Segmentation". {[Arxiv Paper](https://arxiv.org/abs/2402.02491)}
 
 ## Abstract
-In the realm of medical image segmentation, both CNN-based and Transformer-based models have been extensively explored. However, CNNs exhibit limitations in long-range modeling capabilities, whereas Transformers are hampered by their quadratic computational complexity. Recently, State Space Models (SSMs), exemplified by Mamba, have emerged as a promising approach. They not only excel in modeling long-range interactions but also maintain a linear computational complexity. In this paper, leveraging state space models, we propose a U-shape architecture model for medical image segmentation, named Vision Mamba UNet (VM-UNet). Specifically, the Visual State Space (VSS) block is introduced as the foundation block to capture extensive contextual information, and an asymmetrical encoder-decoder structure is constructed. We conduct comprehensive experiments on the ISIC17, ISIC18, and Synapse datasets, and the results indicate that VM-UNet performs competitively in medical image segmentation tasks. To our best knowledge, this is the first medical image segmentation model constructed based on the pure SSM-based model. We aim to establish a baseline and provide valuable insights for the future development of more efficient and effective SSM-based segmentation systems.
+In the realm of medical image segmentation, both CNN-based and Transformer-based models have been extensively explored. However, CNNs exhibit limitations in long-range modeling capabilities, whereas Transformers are hampered by their quadratic computational complexity. Recently, State Space Models (SSMs), exemplified by Mamba, have emerged as a promising approach. They not only excel in modeling long-range interactions but also maintain a linear computational complexity. In this paper, leveraging state space models, we propose a U-shape architecture model for medical image segmentation, named Vision Mamba UNet (VM-UNet). Specifically, the Visual State Space (VSS) block is introduced as the foundation block to capture extensive contextual information, and an asymmetrical encoder-decoder structure is constructed. We conduct comprehensive experiments on the ISIC17, ISIC18, Synapse and Abdomenatlas datasets, and the results indicate that VM-UNet performs competitively in medical image segmentation tasks. To our best knowledge, this is the first medical image segmentation model constructed based on the pure SSM-based model. We aim to establish a baseline and provide valuable insights for the future development of more efficient and effective SSM-based segmentation systems.
 
 ## 0. Main Environments
 ```bash
 conda create -n vmunet python=3.8
 conda activate vmunet
-pip install torch==1.13.0 torchvision==0.14.0 torchaudio==0.13.0 --extra-index-url https://download.pytorch.org/whl/cu117
+pip install torch==1.13.0 torchvision==0.14.0 torchaudio==0.13.0 --extra-index-url https://download.pytorch.org/whl/cu118
 pip install packaging
 pip install timm==0.4.12
 pip install pytest chardet yacs termcolor
@@ -19,7 +19,7 @@ pip install causal_conv1d==1.0.0  # causal_conv1d-1.0.0+cu118torch1.13cxx11abiFA
 pip install mamba_ssm==1.0.1  # mmamba_ssm-1.0.1+cu118torch1.13cxx11abiFALSE-cp38-cp38-linux_x86_64.whl
 pip install scikit-learn matplotlib thop h5py SimpleITK scikit-image medpy yacs
 ```
-The .whl files of causal_conv1d and mamba_ssm could be found here. {[Baidu](https://pan.baidu.com/s/1Tibn8Xh4FMwj0ths8Ufazw?pwd=uu5k)}
+The fixed version of the .whl files of causal_conv1d and mamba_ssm could be found here. {[Google Drive](https://drive.google.com/drive/folders/1fW8KcW29tIDQ7yL_2GNbl5bzU8dboold?usp=drive_link)}
 
 ## 1. Prepare the dataset
 
@@ -52,6 +52,25 @@ The .whl files of causal_conv1d and mamba_ssm could be found here. {[Baidu](http
       - all.lst
       - test_vol.txt
       - train.txt
+    
+  - test_vol_h5
+    - casexxxx.npy.h5
+    
+  - train_npz
+    - casexxxx_slicexxx.npz
+    
+      
+
+### Abdomenatlas datasets
+
+- For the Abdomenatlas datasets, we organize the data format as the synapse datasets.
+- After downloading the datasets, you are supposed to preprocess the data into the following format.
+- './data/Abdomanatlas/'
+  - lists
+    - list_abdomenatlas
+      - all.lst
+      - test_vol.txt
+      - train.txt
   - test_vol_h5
     - casexxxx.npy.h5
   - train_npz
@@ -68,10 +87,15 @@ The .whl files of causal_conv1d and mamba_ssm could be found here. {[Baidu](http
 cd VM-UNet
 python train.py  # Train and test VM-UNet on the ISIC17 or ISIC18 dataset.
 python train_synapse.py  # Train and test VM-UNet on the Synapse dataset.
+python train_Abdomenatlas #Train using multiple GPUs on the Abdomenatlas dataset.
 ```
 
 ## 4. Obtain the outputs
 - After trianing, you could obtain the results in './results/'
+
+## 5. About the validation
+- You can simply run the 'validation.py' to get the output and dice scores and HD95.
+- However, to reduce computation time in multi-class segmentation tasks, you can comment out the HD95 calculation in the calculate_metric_percase function inside the utils module (specifically the part where hd95 is computed) and temporarily set hd95 = 0.
 
 ## 5. Acknowledgments
 
