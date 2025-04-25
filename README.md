@@ -82,13 +82,38 @@ The fixed version of the .whl files of causal_conv1d and mamba_ssm could be foun
 
 
 
-## 3. Train the VM-UNet
+## 3. Training the VM-UNet Model
+- To train the VM-UNet model, navigate to the VM-UNet directory and execute the appropriate training script based on your dataset and hardware configuration.
+
+### Single GPU Training
+
+- ISIC17 or ISIC18 Datasets:
 ```bash
-cd VM-UNet
-python train.py  # Train and test VM-UNet on the ISIC17 or ISIC18 dataset.
-python train_synapse.py  # Train and test VM-UNet on the Synapse dataset.
-python train_Abdomenatlas #Train using multiple GPUs on the Abdomenatlas dataset.
+python train.py  
 ```
+This command trains and tests the VM-UNet model on the specified dataset.
+
+- Synapse Dataset:
+```bash
+python train_synapse.py
+```
+This command trains and tests the VM-UNet model on the Synapse dataset.
+
+### Multi-GPU Training
+
+- Specify GPUs:
+In the train_Abdomenatlas.py script, set the CUDA_VISIBLE_DEVICES environment variable to select the GPUs you wish to use. For example:
+ ```bash
+os.environ["CUDA_VISIBLE_DEVICES"] = "4,5,6,7"
+```
+This configuration uses GPUs 4, 5, 6, and 7.
+
+- Start Training:
+ ```bash
+python train_Abdomenatlas.py
+```
+### Configuration Note
+For modifications to the training setup or to adapt the script for other datasets, refer to and adjust the settings in ./configs/config_setting_Abdomenatlas.py. or other configs.
 
 ## 4. Obtain the outputs
 - After trianing, you could obtain the results in './results/'

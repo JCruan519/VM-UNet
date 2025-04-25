@@ -76,7 +76,17 @@ def main_worker(local_rank, config):
 
 
     print('#----------Preparing Models----------#')
-    model = SwinTransformerForSegmentation(num_classes=26)
+    model_cfg = config.model_config
+    if config.network == 'vmunet':
+        model = VMUNet(
+            num_classes=model_cfg['num_classes'],
+            input_channels=model_cfg['input_channels'],
+            depths=model_cfg['depths'],
+            depths_decoder=model_cfg['depths_decoder'],
+            drop_path_rate=model_cfg['drop_path_rate'],
+            load_ckpt_path=model_cfg['load_ckpt_path'],
+        )
+    else: raise('Please prepare a right net!')
     
     model = model.to(device_id)
     if config.distributed:
