@@ -14,7 +14,7 @@ from matplotlib import pyplot as plt
 from scipy.ndimage import zoom
 import SimpleITK as sitk
 from medpy import metric
-
+import time
 
 def set_seed(seed):
     # for hash
@@ -38,24 +38,20 @@ def get_logger(name, log_dir):
         log_dir(str): path of log
     '''
 
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
+    os.makedirs(log_dir, exist_ok=True)
 
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
 
     info_name = os.path.join(log_dir, '{}.info.log'.format(name))
-    info_handler = logging.handlers.TimedRotatingFileHandler(info_name,
-                                                             when='D',
-                                                             encoding='utf-8')
+    info_handler = logging.handlers.TimedRotatingFileHandler(info_name, when='D', encoding='utf-8')
     info_handler.setLevel(logging.INFO)
 
-    formatter = logging.Formatter('%(asctime)s - %(message)s',
-                                  datefmt='%Y-%m-%d %H:%M:%S')
-
+    formatter = logging.Formatter('%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     info_handler.setFormatter(formatter)
 
-    logger.addHandler(info_handler)
+    if not logger.handlers:
+        logger.addHandler(info_handler)
 
     return logger
 
@@ -436,6 +432,13 @@ class myNormalize:
             else:
                 self.mean = 149.8485
                 self.std = 35.3346
+        elif data_name == 'DSA':
+            if train:
+                self.mean = 113.22190625
+                self.std = 44.01479234
+            else:
+                self.mean = 124.02410156
+                self.std = 48.49705041
             
     def __call__(self, data):
         img, msk = data
@@ -446,12 +449,12 @@ class myNormalize:
     
 
 
-from thop import profile		 ## 导入thop模块
+from thop import profile		
 def cal_params_flops(model, size, logger):
     input = torch.randn(1, 3, size, size).cuda()
     flops, params = profile(model, inputs=(input,))
-    print('flops',flops/1e9)			## 打印计算量
-    print('params',params/1e6)			## 打印参数量
+    print('flops',flops/1e9)			
+    print('params',params/1e6)			
 
     total = sum(p.numel() for p in model.parameters())
     print("Total params: %.2fM" % (total/1e6))
@@ -468,6 +471,7 @@ def calculate_metric_percase(pred, gt):
     if pred.sum() > 0 and gt.sum()>0:
         dice = metric.binary.dc(pred, gt)
         hd95 = metric.binary.hd95(pred, gt)
+        # hd95 = 0
         return dice, hd95
     elif pred.sum() > 0 and gt.sum()==0:
         return 1, 0
@@ -475,48 +479,124 @@ def calculate_metric_percase(pred, gt):
         return 0, 0
 
 
-
 def test_single_volume(image, label, net, classes, patch_size=[256, 256], 
-                    test_save_path=None, case=None, z_spacing=1, val_or_test=False):
+                       test_save_path=None, case=None, z_spacing=1, val_or_test=False):
+
+    batch_size = 128
     image, label = image.squeeze(0).cpu().detach().numpy(), label.squeeze(0).cpu().detach().numpy()
-    if len(image.shape) == 3:
-        prediction = np.zeros_like(label)
-        for ind in range(image.shape[0]):
-            slice = image[ind, :, :]
-            x, y = slice.shape[0], slice.shape[1]
-            if x != patch_size[0] or y != patch_size[1]:
-                slice = zoom(slice, (patch_size[0] / x, patch_size[1] / y), order=3)  # previous using 0
-            input = torch.from_numpy(slice).unsqueeze(0).unsqueeze(0).float().cuda()
-            net.eval()
-            with torch.no_grad():
-                outputs = net(input)
-                out = torch.argmax(torch.softmax(outputs, dim=1), dim=1).squeeze(0)
-                out = out.cpu().detach().numpy()
-                if x != patch_size[0] or y != patch_size[1]:
-                    pred = zoom(out, (x / patch_size[0], y / patch_size[1]), order=0)
-                else:
-                    pred = out
-                prediction[ind] = pred
-    else:
-        input = torch.from_numpy(image).unsqueeze(
-            0).unsqueeze(0).float().cuda()
+    original_shape = image.shape  # (x, y, z) => (512, 512, 369)
+    x, y, z = original_shape  # Ensure z is the slicing direction
+
+    prediction = np.zeros((x, y, z))
+
+    for i in range(z):
+
+        slice_image = image[:, :, i] 
+
+        slice_image_tensor = torch.from_numpy(slice_image).unsqueeze(0).unsqueeze(0).float().cuda()  # [1, 1, 512, 512]
+        slice_image_resized = F.interpolate(slice_image_tensor, size=patch_size, mode='bilinear', align_corners=True)  # [1, 1, 256, 256]
+
         net.eval()
         with torch.no_grad():
-            out = torch.argmax(torch.softmax(net(input), dim=1), dim=1).squeeze(0)
-            prediction = out.cpu().detach().numpy()
+            output = net(slice_image_resized)  
+            prediction_slice_resized = torch.argmax(torch.softmax(output, dim=1), dim=1).cpu().numpy()  # [1, 256, 256]
+            prediction_slice_resized = prediction_slice_resized.squeeze(0) 
+
+        prediction_slice = torch.from_numpy(prediction_slice_resized).unsqueeze(0).unsqueeze(0).float().cuda()
+        prediction_slice = F.interpolate(prediction_slice, size=(x, y), mode='nearest').squeeze(0).squeeze(0).cpu().numpy()  # [512, 512]
+
+        prediction[:, :, i] = prediction_slice
+
     metric_list = []
     for i in range(1, classes):
         metric_list.append(calculate_metric_percase(prediction == i, label == i))
 
     if test_save_path is not None and val_or_test is True:
+        case_folder = os.path.join(test_save_path, case)
+        os.makedirs(case_folder, exist_ok=True)
+
         img_itk = sitk.GetImageFromArray(image.astype(np.float32))
-        prd_itk = sitk.GetImageFromArray(prediction.astype(np.float32))
-        lab_itk = sitk.GetImageFromArray(label.astype(np.float32))
         img_itk.SetSpacing((1, 1, z_spacing))
-        prd_itk.SetSpacing((1, 1, z_spacing))
-        lab_itk.SetSpacing((1, 1, z_spacing))
-        sitk.WriteImage(prd_itk, test_save_path + '/'+case + "_pred.nii.gz")
-        sitk.WriteImage(img_itk, test_save_path + '/'+ case + "_img.nii.gz")
-        sitk.WriteImage(lab_itk, test_save_path + '/'+ case + "_gt.nii.gz")
-        # cv2.imwrite(test_save_path + '/'+case + '.png', prediction*255)
+        sitk.WriteImage(img_itk, os.path.join(case_folder, "ct.nii.gz"))
+
+        combined_segmentation = sitk.GetImageFromArray(prediction.astype(np.float32))
+        combined_segmentation.SetSpacing((1, 1, z_spacing))
+        sitk.WriteImage(combined_segmentation, os.path.join(case_folder, "combined_segmentation.nii.gz"))
+
+        class_names = ['background', 'aorta', 'gall_bladder', 'kidney_left', 'kidney_right', 'liver', 
+                       'pancreas', 'postcava', 'spleen', 'stomach', 'adrenal_grand_left', 'adrenal_grand_right',
+                       'bladder', 'celiac_trunk', 'colon', 'duodenum', 'esophagus', 'femur_left', 'femur_right',
+                       'hepatic_vessel', 'intestine', 'lung_left', 'lung_right', 'portar_vein_and_splenic_vein',
+                       'prostate', 'rectum']
+
+        segmentation_path = os.path.join(case_folder, 'segmentation')
+        os.makedirs(segmentation_path, exist_ok=True)
+
+        for i in range(1, classes):
+            pred_class = (prediction == i).astype(np.float32)
+            prd_itk = sitk.GetImageFromArray(pred_class)
+            prd_itk.SetSpacing((1, 1, z_spacing))
+            class_save_path = os.path.join(segmentation_path, f"{class_names[i]}.nii.gz")
+            sitk.WriteImage(prd_itk, class_save_path)
+
     return metric_list
+
+def test_single_volume_test(image, net, classes, patch_size=[256, 256], 
+                       test_save_path=None, case=None, z_spacing=1, val_or_test=False):
+    batch_size = 128
+
+    image = image.squeeze().cpu().detach().numpy().astype(np.float32)
+    original_shape = image.shape  
+    z, x, y = original_shape 
+
+    if x != patch_size[0] or y != patch_size[1]:
+        image = torch.from_numpy(image).unsqueeze(0).unsqueeze(0).float().cuda() 
+        image = F.interpolate(image, size=(z, patch_size[0], patch_size[1]), mode='trilinear', align_corners=True) 
+        image = image.squeeze(0).squeeze(0)  # [Z, H, W]
+
+    prediction = np.zeros((z, patch_size[0], patch_size[1]))
+
+    for i in range(0, z, batch_size):
+        end = min(i + batch_size, z)
+        image_batch = image[i:end].unsqueeze(1).float().cuda() 
+        net.eval()
+        with torch.no_grad():
+            outputs = net(image_batch)
+            prediction_batch = torch.argmax(torch.softmax(outputs, dim=1), dim=1).cpu().detach().numpy() 
+
+        prediction[i:end] = prediction_batch
+
+    if x != patch_size[0] or y != patch_size[1]:
+        prediction = torch.from_numpy(prediction).unsqueeze(0).unsqueeze(0).float().cuda()
+        prediction = F.interpolate(prediction, size=(z, original_shape[1], original_shape[2]), mode='nearest') 
+        prediction = prediction.squeeze(0).squeeze(0).cpu().numpy()  
+
+    if test_save_path is not None and val_or_test is True:
+        case_folder = os.path.join(test_save_path, case)
+        os.makedirs(case_folder, exist_ok=True)
+
+        img_itk = sitk.GetImageFromArray(image.cpu().numpy().astype(np.float32))
+        img_itk.SetSpacing((1, 1, z_spacing))
+        sitk.WriteImage(img_itk, os.path.join(case_folder, "ct.nii.gz"))
+
+        combined_segmentation = sitk.GetImageFromArray(prediction.astype(np.float32))
+        combined_segmentation.SetSpacing((1, 1, z_spacing))
+        sitk.WriteImage(combined_segmentation, os.path.join(case_folder, "combined_segmentation.nii.gz"))
+
+        class_names = ['background', 'aorta', 'gall_bladder', 'kidney_left', 'kidney_right', 'liver', 
+                       'pancreas', 'postcava', 'spleen', 'stomach', 'adrenal_grand_left', 'adrenal_grand_right',
+                       'bladder', 'celiac_trunk', 'colon', 'duodenum', 'esophagus', 'femur_left', 'femur_right',
+                       'hepatic_vessel', 'intestine', 'lung_left', 'lung_right', 'portar_vein_and_splenic_vein',
+                       'prostate', 'rectum']
+
+        segmentation_path = os.path.join(case_folder, 'segmentation')
+        os.makedirs(segmentation_path, exist_ok=True)
+
+        for i in range(1, classes):
+            pred_class = (prediction == i).astype(np.float32)
+            prd_itk = sitk.GetImageFromArray(pred_class)
+            prd_itk.SetSpacing((1, 1, z_spacing))
+            class_save_path = os.path.join(segmentation_path, f"{class_names[i]}.nii.gz")
+            sitk.WriteImage(prd_itk, class_save_path)
+
+    return
