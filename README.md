@@ -9,17 +9,18 @@ In the realm of medical image segmentation, both CNN-based and Transformer-based
 ```bash
 conda create -n vmunet python=3.8
 conda activate vmunet
-pip install torch==1.13.0 torchvision==0.14.0 torchaudio==0.13.0 --extra-index-url https://download.pytorch.org/whl/cu118
+pip install torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 --extra-index-url https://download.pytorch.org/whl/cu118
 pip install packaging
-pip install timm==0.4.12
+pip install timm==1.0.3
 pip install pytest chardet yacs termcolor
 pip install submitit tensorboardX
-pip install triton==2.0.0
-pip install causal_conv1d==1.0.0  # causal_conv1d-1.0.0+cu118torch1.13cxx11abiFALSE-cp38-cp38-linux_x86_64.whl
-pip install mamba_ssm==1.0.1  # mmamba_ssm-1.0.1+cu118torch1.13cxx11abiFALSE-cp38-cp38-linux_x86_64.whl
+pip install triton==3.0.0
+pip install causal_conv1d==1.2.2.post1 #causal_conv1d-1.3.0.post1 is also OK!
+pip install mamba_ssm==2.2.0  
 pip install scikit-learn matplotlib thop h5py SimpleITK scikit-image medpy yacs
 ```
-The fixed version of the .whl files of causal_conv1d and mamba_ssm could be found here. {[Google Drive](https://drive.google.com/drive/folders/1fW8KcW29tIDQ7yL_2GNbl5bzU8dboold?usp=drive_link)}
+The .whl files of causal_conv1d and mamba_ssm could be found here. {[GoogleDrive](https://drive.google.com/drive/folders/1fW8KcW29tIDQ7yL_2GNbl5bzU8dboold?usp=drive_link)}
+
 
 ## 1. Prepare the dataset
 
@@ -122,6 +123,6 @@ For modifications to the training setup or to adapt the script for other dataset
 - You can simply run the 'validation.py' to get the output and dice scores and HD95.
 - However, to reduce computation time in multi-class segmentation tasks, you can comment out the HD95 calculation in the calculate_metric_percase function inside the utils module (specifically the part where hd95 is computed) and temporarily set hd95 = 0.
 
-## 5. Acknowledgments
+## 6. Acknowledgments
 
 - We thank the authors of [VMamba](https://github.com/MzeroMiko/VMamba) and [Swin-UNet](https://github.com/HuCaoFighting/Swin-Unet) for their open-source codes.

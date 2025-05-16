@@ -9,19 +9,20 @@ from torchvision import transforms
 import torch.multiprocessing as mp
 
 from datasets.dataset import RandomGenerator
-from engine_synapse import *
+from engine_Abdomenatlas import *
 
 from models.vmunet.vmunet import VMUNet
 
 import os
 import sys
-os.environ["CUDA_VISIBLE_DEVICES"] = "4,5,6,7"
+os.environ["CUDA_VISIBLE_DEVICES"] = "5,6"
 from utils import *
 from configs.config_setting_Abdomenatlas import setting_config
 import timm
 import warnings
 warnings.filterwarnings("ignore")
-warnings.filterwarnings("ignore", category=FutureWarning)
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning, module="mamba_ssm")
 
 def main_worker(local_rank, config):
     print('#----------GPU init----------#')
@@ -77,18 +78,17 @@ def main_worker(local_rank, config):
 
     print('#----------Preparing Models----------#')
     model_cfg = config.model_config
-    if config.network == 'vmunet':
-        model = VMUNet(
-            num_classes=model_cfg['num_classes'],
-            input_channels=model_cfg['input_channels'],
-            depths=model_cfg['depths'],
-            depths_decoder=model_cfg['depths_decoder'],
-            drop_path_rate=model_cfg['drop_path_rate'],
-            load_ckpt_path=model_cfg['load_ckpt_path'],
-        )
-    else: raise('Please prepare a right net!')
-    
+    model = VMUNet(
+        num_classes=model_cfg['num_classes'],
+        input_channels=model_cfg['input_channels'],
+        depths=model_cfg['depths'],
+        depths_decoder=model_cfg['depths_decoder'],
+        drop_path_rate=model_cfg['drop_path_rate'],
+        load_ckpt_path=model_cfg['load_ckpt_path'],
+    )
+    model.load_from()
     model = model.to(device_id)
+
     if config.distributed:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
         model = DDP(model, device_ids=[device_id], output_device=device_id, broadcast_buffers=False, find_unused_parameters=False)

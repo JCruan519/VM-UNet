@@ -92,5 +92,5 @@ def main(config,best_model_path):
 if __name__ == '__main__':
     config = setting_config
     config.distributed = False
-    best_model_path = "./VM_UNet/VM-UNet_copy/results/VMUNET/checkpoints/best.pth"  
+    best_model_path = "./VM_UNet/VM-UNet-main/results/vmunet_AbdomenAtlas_Friday_16_May_2025_14h_11m_57s/checkpoints/best.pth"  
     main(config,best_model_path)
