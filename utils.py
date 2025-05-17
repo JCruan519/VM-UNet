@@ -226,32 +226,54 @@ def get_scheduler(config, optimizer):
 
 
 def save_imgs(img, msk, msk_pred, i, save_path, datasets, threshold=0.5, test_data_name=None):
+    # 处理图像数据
     img = img.squeeze(0).permute(1,2,0).detach().cpu().numpy()
     img = img / 255. if img.max() > 1.1 else img
+    
+    # 根据数据集处理掩码
     if datasets == 'retinal':
         msk = np.squeeze(msk, axis=0)
         msk_pred = np.squeeze(msk_pred, axis=0)
     else:
+        att_msk = np.squeeze(msk_pred, axis=0)
         msk = np.where(np.squeeze(msk, axis=0) > 0.5, 1, 0)
-        msk_pred = np.where(np.squeeze(msk_pred, axis=0) > threshold, 1, 0) 
+        msk_pred = np.where(np.squeeze(msk_pred, axis=0) > threshold, 1, 0)
 
-    plt.figure(figsize=(7,15))
+    # 设置画布大小
+    plt.figure(figsize=(10, 20))
 
-    plt.subplot(3,1,1)
+    # 调整子图间距，减少白色边框
+    plt.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0.05, hspace=0.05)
+
+    # 原图
+    plt.subplot(4, 1, 1)
     plt.imshow(img)
     plt.axis('off')
+    plt.title('Original Image')
 
-    plt.subplot(3,1,2)
-    plt.imshow(msk, cmap= 'gray')
+    # Ground Truth 掩码
+    plt.subplot(4, 1, 2)
+    plt.imshow(msk, cmap='gray')
     plt.axis('off')
+    plt.title('Ground Truth Mask')
 
-    plt.subplot(3,1,3)
-    plt.imshow(msk_pred, cmap = 'gray')
+    # 预测掩码
+    plt.subplot(4, 1, 3)
+    plt.imshow(msk_pred, cmap='gray')
     plt.axis('off')
+    plt.title('Predicted Mask')
 
+    # 注意力图谱叠加到原图上
+    plt.subplot(4, 1, 4)
+    plt.imshow(img)
+    plt.imshow(att_msk, cmap='jet', alpha=0.5)  # 热力图叠加到原图上，alpha设置透明度
+    plt.axis('off')
+    plt.title('Attention Map Overlay')
+
+    # 保存图片
     if test_data_name is not None:
         save_path = save_path + test_data_name + '_'
-    plt.savefig(save_path + str(i) +'.png')
+    plt.savefig(save_path + str(i) + '.png', bbox_inches='tight', pad_inches=0)
     plt.close()
     
 
@@ -515,7 +537,7 @@ def test_single_volume(image, label, net, classes, patch_size=[256, 256],
         img_itk.SetSpacing((1, 1, z_spacing))
         prd_itk.SetSpacing((1, 1, z_spacing))
         lab_itk.SetSpacing((1, 1, z_spacing))
-        sitk.WriteImage(prd_itk, test_save_path + '/'+case + "_pred.nii.gz")
+        sitk.WriteImage(prd_itk, test_save_path + '/'+ case + "_pred.nii.gz")
         sitk.WriteImage(img_itk, test_save_path + '/'+ case + "_img.nii.gz")
         sitk.WriteImage(lab_itk, test_save_path + '/'+ case + "_gt.nii.gz")
         # cv2.imwrite(test_save_path + '/'+case + '.png', prediction*255)

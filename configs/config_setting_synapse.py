@@ -49,13 +49,13 @@ class setting_config:
     batch_size = 32
     epochs = 300
     work_dir = 'results/' + network + '_' + datasets_name + '_' + datetime.now().strftime('%A_%d_%B_%Y_%Hh_%Mm_%Ss') + '/'
-    # 'D:/CODES/MedSeg/BIBM22/results/datrm2_isic18_Sunday_04_September_2022_12h_04m_10s/'
     print_interval = 20
     val_interval = 100
-    test_weights_path = ''
-
     threshold = 0.5
-
+    only_test_and_save_figs = False
+    best_ckpt_path = 'PATH_TO_YOUR_BEST_CKPT'
+    img_save_path = 'PATH_TO_SAVE_IMAGES'
+    
     opt = 'AdamW'
     assert opt in ['Adadelta', 'Adagrad', 'Adam', 'AdamW', 'Adamax', 'ASGD', 'RMSprop', 'Rprop', 'SGD'], 'Unsupported optimizer!'
     if opt == 'Adadelta':

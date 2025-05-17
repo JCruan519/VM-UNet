@@ -51,6 +51,9 @@ class setting_config:
     val_interval = 30
     save_interval = 100
     threshold = 0.5
+    only_test_and_save_figs = False
+    best_ckpt_path = 'PATH_TO_YOUR_BEST_CKPT'
+    img_save_path = 'PATH_TO_SAVE_IMAGES'
 
     train_transformer = transforms.Compose([
         myNormalize(datasets, train=True),

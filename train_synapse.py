@@ -129,6 +129,24 @@ def main(config):
     min_epoch = 1
 
 
+    if config.only_test_and_save_figs:
+        checkpoint = torch.load(config.best_ckpt_path, map_location=torch.device('cpu'))
+        model.load_state_dict(checkpoint)
+        config.work_dir = config.img_save_path
+        if not os.path.exists(config.work_dir + 'outputs/'):
+            os.makedirs(config.work_dir + 'outputs/')
+        mean_dice, mean_hd95 = val_one_epoch(
+                val_dataset,
+                val_loader,
+                model,
+                epoch,
+                logger,
+                config,
+                test_save_path=outputs,
+                val_or_test=True
+            )
+        print(mean_dice, mean_hd95)
+        return
 
 
 
